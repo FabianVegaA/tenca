@@ -1,0 +1,25 @@
+{
+  "name": "autoprofiler",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "concurrently \"pnpm start:client\" \"pnpm start:server\"",
+    "start:client": "cd client && pnpm start",
+    "start:server": "cd server && pnpm start",
+    "test": "concurrently \"pnpm test:client\" \"pnpm test:server\"",
+    "test:client": "cd client && pnpm test",
+    "test:server": "cd server && pnpm test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.4.1",
+  "dependencies": {
+    "concurrently": "^9.1.2"
+  },
+  "workspaces": {
+    "client": "client",
+    "server": "server"
+  }
+}
