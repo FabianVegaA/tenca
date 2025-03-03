@@ -1,9 +1,12 @@
 import { useState } from "react";
 import "./App.css";
 import {
+  Alert,
   Box,
+  Button,
+  ButtonGroup,
+  Card,
   Container,
-  Grid2 as Grid,
   IconButton,
   Paper,
   Stack,
@@ -13,21 +16,24 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  TextField,
   Typography,
 } from "@mui/material";
 import AceEditor from "react-ace";
 import "ace-builds/src-noconflict/mode-pgsql";
 import "ace-builds/src-noconflict/theme-github";
 import "ace-builds/src-noconflict/ext-language_tools";
-import { PlayCircleFilled } from "@mui/icons-material";
+import { Create, PlayCircleFilled } from "@mui/icons-material";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import Tab from "@mui/material/Tab";
+import TabContext from "@mui/lab/TabContext";
+import TabList from "@mui/lab/TabList";
+import TabPanel from "@mui/lab/TabPanel";
 
 function createData(stratergy: string, time: number, memory: number) {
-  return {
-    stratergy,
-    time,
-    memory,
-  };
+  return { stratergy, time, memory };
 }
 
 const rows = [
@@ -69,17 +75,17 @@ function BasicTable() {
 }
 
 type SQLInputProps = {
-  value: string;
+  defaultValue: string;
   onChange: (value: string) => void;
   name: string;
 };
 
-function SQLInput({ value, onChange, name }: SQLInputProps) {
+function SQLInput({ defaultValue: value, onChange, name }: SQLInputProps) {
   return (
     <AceEditor
       mode="pgsql"
       theme="github"
-      value={value}
+      defaultValue={value}
       onChange={onChange}
       name={name}
       width="100%"
@@ -92,39 +98,127 @@ function SQLInput({ value, onChange, name }: SQLInputProps) {
   );
 }
 
+type SQLInputCreateTablesProps = {
+  numTables: number;
+  onChange: (value: string) => void;
+};
+
+function SQLInputTable() {
+  const [name, setName] = useState<string>("");
+  return (
+    <Accordion>
+      <AccordionSummary
+        expandIcon={<ExpandMoreIcon />}
+        aria-controls="panel2-content"
+        id="panel2-header"
+      >
+        <Typography component="span" variant="overline" color="textSecondary">
+          Table {name}
+        </Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        <SQLInput
+          name={name}
+          defaultValue="-- CREATE TABLE my_table (
+            id INT PRIMARY KEY,
+              name VARCHAR(100)
+            );"
+          onChange={(value) => {
+            const createTableRegex =
+              /CREATE\s+TABLE\s+(IF NOT EXISTS\s+)?(?<tableName>[a-zA-Z_][a-zA-Z0-9_]*)/gi;
+            const tableName = createTableRegex.exec(value)?.groups?.tableName;
+            if (tableName) setName(tableName);
+            console.log("Table name:", tableName, "Value:", value);
+          }}
+        />
+      </AccordionDetails>
+    </Accordion>
+  );
+}
+
+function SQLInputTables({ numTables, onChange }: SQLInputCreateTablesProps) {
+  return (
+    <>
+      {Array.from({ length: numTables }).map((i) => (
+        <SQLInputTable key={`Table-${i}`} />
+      ))}
+    </>
+  );
+}
+
+function OutputPanel() {
+  type Tabs = "Logs" | "Stats" | "Code";
+
+  const [value, setValue] = useState<Tabs>("Logs");
+
+  const handleChange = (event: React.SyntheticEvent, newValue: Tabs) => {
+    setValue(newValue);
+  };
+
+  return (
+    <TabContext value={value}>
+      <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+        <TabList onChange={handleChange} aria-label="lab API tabs example">
+          <Tab label="Logs" value="Logs" />
+          <Tab label="Stats" value="Stats" />
+          <Tab label="Code" value="Code" />
+        </TabList>
+      </Box>
+      <TabPanel value="Logs">
+        <Alert severity="success">This is a success Alert.</Alert>
+        <Alert severity="info">This is an info Alert.</Alert>
+        <Alert severity="warning">This is a warning Alert.</Alert>
+        <Alert severity="error">This is an error Alert.</Alert>
+      </TabPanel>
+      <TabPanel value="Stats">
+        <BasicTable />
+      </TabPanel>
+      <TabPanel value="Code">
+        <Card>
+          <Typography variant="body1" gutterBottom>
+            body1. Lorem ipsum dolor sit amet, consectetur adipisicing elit.
+            Quos blanditiis tenetur unde suscipit, quam beatae rerum inventore
+            consectetur, neque doloribus, cupiditate numquam dignissimos laborum
+            fugiat deleniti? Eum quasi quidem quibusdam.
+          </Typography>
+        </Card>
+      </TabPanel>
+    </TabContext>
+  );
+}
+
 function App() {
-  const [numTables, setNumTables] = useState(2);
+  const [numTables, setNumTables] = useState(0);
   return (
     <Container component={Paper} sx={{ pt: 2, pb: 2 }}>
       <Typography variant="h1" align="center">
         SQL Profiler
       </Typography>
+      <Box>
+        <ButtonGroup variant="outlined" aria-label="control">
+          <Button onClick={() => setNumTables(numTables + 1)}>
+            {" "}
+            Add Table{" "}
+          </Button>
+        </ButtonGroup>
+        <IconButton aria-label="run" color="primary" size="large">
+          <PlayCircleFilled />
+        </IconButton>
+      </Box>
       <Stack spacing={2} direction="row">
         <Stack spacing={2} sx={{ width: "50%" }}>
           <SQLInput
-            value="-- Insert your SQL query here"
+            defaultValue="-- Insert your SQL query here"
             onChange={(value) => console.log(value)}
             name="DQL"
           />
-          {Array.from({ length: numTables }, (_, i) => (
-            <SQLInput
-              key={`DDL${i + 1}`}
-              name={`DDL${i + 1}`}
-              value="-- CREATE TABLE my_table (
-              id INT PRIMARY KEY,
-                name VARCHAR(100)
-              );"
-              onChange={(value) => console.log(value)}
-            />
-          ))}
+          <SQLInputTables
+            numTables={numTables}
+            onChange={(value) => console.log(value)}
+          />
         </Stack>
         <Box sx={{ width: "50%" }}>
-          <Stack direction="row-reverse" spacing={1}>
-            <IconButton aria-label="run" color="primary" size="large">
-              <PlayCircleFilled />
-            </IconButton>
-          </Stack>
-          <BasicTable />
+          <OutputPanel />
         </Box>
       </Stack>
     </Container>
