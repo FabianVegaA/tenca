@@ -9,7 +9,7 @@ type Result<Success, Error> =
   | { success: true; value: Success }
   | { success: false; value: Error };
 
-type Command = 'parse' | 'fix';
+type Command = 'parse' | 'fix' | 'format';
 
 export class SQLParser {
   private sqlfluffPath: string;
@@ -27,12 +27,13 @@ export class SQLParser {
       stderr: string,
     ) => Result<Success, string>,
   ): Promise<Result<Success, string>> {
+    console.log(`Running SQLFluff ${command} command...`);
     const { name: tempFile, removeCallback } = tmp.fileSync();
 
     try {
       await fs.writeFile(tempFile, sql);
       const output = await execute(
-        `${this.sqlfluffPath} ${command} ${tempFile} --dialect=postgres`,
+        `${this.sqlfluffPath} ${command} ${tempFile} --dialect=postgres --config /Users/fabianveal/dev/autoprofiler/.sqlfluff`,
       );
 
       if (output.stdout.includes('==== formatting violations ====')) {
@@ -57,7 +58,7 @@ export class SQLParser {
   }
 
   public async formatSQL(sql: string): Promise<Result<string, string>> {
-    return this.runSqlfluff('fix', sql, (output) => ({
+    return this.runSqlfluff('format', sql, (output) => ({
       success: true,
       value: output,
     }));
